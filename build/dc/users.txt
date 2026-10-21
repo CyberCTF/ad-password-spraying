@@ -1,0 +1,12 @@
+eddard.stark
+catelyn.stark
+robb.stark
+sansa.stark
+arya.stark
+brandon.stark
+jon.snow
+samwell.tarly
+jeor.mormont
+benjen.stark
+theon.greyjoy
+maester.luwin

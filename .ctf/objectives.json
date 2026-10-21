@@ -1,0 +1,75 @@
+{
+  "objectives": [
+    {
+      "key": "main",
+      "title": "Read the flag",
+      "prompt": "Spray a short list of seasonal candidate passwords across the domain user roster, find the single account that authenticates (the one reusing a weak seasonal password), then read flag.txt from the //dc/nightswatch share that only that account may open.",
+      "check": {
+        "evidence": "SECRET",
+        "format": "FLAG{%s}"
+      },
+      "dev": "FLAG{dev-pwspray-north-samwell.tarly}",
+      "hints": [
+        "No credentials are handed out, but the user roster is known (and enumerable over null/low-priv LDAP on 389). Account lockout is disabled, so you can safely try one password against every user.",
+        "Spray a short list of seasonal candidates (season + year, capitalised, with digits: Spring2024, Summer2024, Autumn2024, Winter2023, ...) across the roster: nxc smb <dc> -u users.txt -p 'Autumn2024' --continue-on-success, or kerbrute passwordspray. Exactly one account comes back positive.",
+        "The hit is samwell.tarly / Autumn2024. Read the flag with it: smbclient //dc/nightswatch -U 'NORTH\\samwell.tarly%Autumn2024' -c 'get flag.txt'."
+      ],
+      "steps": [
+        {
+          "key": "technique",
+          "title": "Name the technique",
+          "prompt": "What is the name of the attack that tries one (or a few) common passwords against many accounts to stay under lockout thresholds?",
+          "check": {
+            "answer": [
+              "password spraying",
+              "password spray",
+              "spraying"
+            ]
+          }
+        },
+        {
+          "key": "lockout",
+          "title": "Name the misconfiguration",
+          "prompt": "Which account policy setting, when disabled or set too high, makes spraying safe for an attacker? (two words)",
+          "check": {
+            "answer_regex": "account lockout|lockout threshold|lockout"
+          }
+        },
+        {
+          "key": "account",
+          "title": "Find the sprayable account",
+          "prompt": "Which account authenticates with a sprayed seasonal password? (username)",
+          "check": {
+            "answer": [
+              "samwell.tarly",
+              "north\\samwell.tarly",
+              "samwell"
+            ]
+          }
+        },
+        {
+          "key": "password",
+          "title": "Recover the password",
+          "prompt": "Which seasonal password does that account reuse?",
+          "check": {
+            "answer": [
+              "Autumn2024"
+            ]
+          }
+        },
+        {
+          "key": "share",
+          "title": "Name the loot share",
+          "prompt": "Which SMB share holds the flag, readable only by the sprayed-in account?",
+          "check": {
+            "answer": [
+              "nightswatch",
+              "//dc/nightswatch",
+              "\\\\dc\\nightswatch"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
