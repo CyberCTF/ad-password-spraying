@@ -1,40 +1,45 @@
 #!/bin/bash
 # Brings the Samba AD DC up deterministically and idempotently:
-#   1. provisions realm NORTH.SEVENKINGDOMS.LOCAL once (skipped on restart),
-#   2. seeds a themed set of domain users -- all with policy-compliant passwords, but exactly
-#      one (samwell.tarly) uses a weak, guessable, seasonal word while the rest are strong and
-#      random -- and disables account lockout so password spraying is viable,
-#   3. plants the flag in a share only samwell.tarly may read,
+#   1. provisions realm SUMMIT.LAB once (skipped on restart),
+#   2. seeds a roster of store-staff domain users -- all with policy-compliant passwords, but
+#      exactly one (k.verma) still uses the weak onboarding default that store staff are handed,
+#      while the rest are strong and random -- and disables account lockout so password spraying
+#      is viable,
+#   3. plants the flag in a share only k.verma may read,
 #   4. runs the single `samba` AD DC process in the foreground.
 # Re-running it against an already-provisioned DC changes nothing (safe restart).
+#
+# Scenario: Summit Retail Group, a retail chain. Onboarding hands every new store employee the
+# same default password (Summer2024), and many never change it; k.verma (a store manager) is the
+# account that still uses it.
 set -euo pipefail
 
-REALM="NORTH.SEVENKINGDOMS.LOCAL"
-DOMAIN="NORTH"
+REALM="SUMMIT.LAB"
+DOMAIN="SUMMIT"
 # DC administrator password: infrastructure only, never shown to the student.
-ADMIN_PASS="DCAdm1n#Winterfell2024"
+ADMIN_PASS="DCAdm1n#Summit2024"
 
-# The sprayable account: policy-compliant (upper+lower+digits, length 10) but a weak, seasonal
-# word any spray wordlist carries. This is the single account the student recovers.
-SPRAY_USER="samwell.tarly"
-SPRAY_PASS="Autumn2024"
+# The sprayable account: policy-compliant (upper+lower+digits, length 10) but the weak onboarding
+# default any spray wordlist carries. This is the single account the student recovers.
+SPRAY_USER="k.verma"
+SPRAY_PASS="Summer2024"
 
-# The domain roster. Every account below SPRAY_USER carries a long, random, policy-compliant
-# password that no seasonal wordlist will ever hit -- they are the negative control. Only
-# samwell.tarly reuses a weak seasonal password.
+# The domain roster. Every account other than SPRAY_USER carries a long, random, policy-compliant
+# password that no spray wordlist will ever hit -- they are the negative control. Only k.verma
+# reuses the weak onboarding default.
 declare -a ACCOUNTS=(
-  "eddard.stark:Gh7xPq2mWz9R@k"
-  "catelyn.stark:Vt4nLb8sYc3H#d"
-  "robb.stark:Qm9zXr5kPw2N%f"
-  "sansa.stark:Lp2wKd7vBt6C-j"
-  "arya.stark:Rf8yHn3qMx4Z_s"
-  "brandon.stark:Dw5cJt9bVl2P+k"
-  "jon.snow:Nk3gRq7xWm8Y=d"
-  "samwell.tarly:Autumn2024"
-  "jeor.mormont:Zb6pTf4nQc9H@s"
-  "benjen.stark:Ht2mXv8kLr5W#d"
-  "theon.greyjoy:Cj9sNb3yPq6Z%x"
-  "maester.luwin:Wd4vKt7mHc2R-n"
+  "m.oulton:Gh7xPq2mWz9R@k"
+  "s.datta:Vt4nLb8sYc3H#d"
+  "r.novak:Qm9zXr5kPw2N%f"
+  "t.bako:Lp2wKd7vBt6C-j"
+  "e.schmidt:Rf8yHn3qMx4Z_s"
+  "l.moreau:Dw5cJt9bVl2P+k"
+  "d.nguyen:Nk3gRq7xWm8Y=d"
+  "k.verma:Summer2024"
+  "a.kowalski:Zb6pTf4nQc9H@s"
+  "p.ellison:Ht2mXv8kLr5W#d"
+  "j.ferreira:Cj9sNb3yPq6Z%x"
+  "c.okafor:Wd4vKt7mHc2R-n"
 )
 
 PRIVATE_DIR="/var/lib/samba/private"
@@ -73,9 +78,9 @@ else
 fi
 
 # Resolver: the DC resolves its own realm through Samba's internal DNS.
-printf 'nameserver 127.0.0.1\nsearch north.sevenkingdoms.local\n' > /etc/resolv.conf 2>/dev/null || true
-grep -q 'dc.north.sevenkingdoms.local' /etc/hosts 2>/dev/null || \
-  printf '127.0.0.1 dc.north.sevenkingdoms.local dc\n' >> /etc/hosts 2>/dev/null || true
+printf 'nameserver 127.0.0.1\nsearch summit.lab\n' > /etc/resolv.conf 2>/dev/null || true
+grep -q 'dc.summit.lab' /etc/hosts 2>/dev/null || \
+  printf '127.0.0.1 dc.summit.lab dc\n' >> /etc/hosts 2>/dev/null || true
 
 # The deliberate misconfiguration that makes spraying safe for an attacker: account lockout is
 # turned off, so a candidate password can be tried against every user with no risk of locking
@@ -98,13 +103,13 @@ done
 
 # Plant the flag inside the share. CTF_FLAG_MAIN is delivered by the launcher at /ctf/flag
 # (Isoloom's sensitive-input-as-file mechanism); fall back to a dev flag for a bare run.
-mkdir -p /srv/nightswatch
+mkdir -p /srv/storeops
 if [ -s /ctf/flag ]; then
-  cp -f /ctf/flag /srv/nightswatch/flag.txt
+  cp -f /ctf/flag /srv/storeops/flag.txt
 else
-  printf 'FLAG{dev-pwspray-north-samwell.tarly}\n' > /srv/nightswatch/flag.txt
+  printf 'FLAG{dev-pwspray-summit}\n' > /srv/storeops/flag.txt
 fi
-chmod 0444 /srv/nightswatch/flag.txt
+chmod 0444 /srv/storeops/flag.txt
 
 log "starting samba (AD DC) ..."
 exec samba --interactive --no-process-group

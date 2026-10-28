@@ -1,7 +1,7 @@
 # Samba, acting as an Active Directory Domain Controller, in a single Linux container.
-# It provisions the realm NORTH.SEVENKINGDOMS.LOCAL at first start (idempotent), seeds a themed
-# roster of domain users (one of which, samwell.tarly, reuses a weak seasonal password), disables
-# account lockout, and plants the flag in a share only samwell.tarly may read. The spray client
+# It provisions the realm SUMMIT.LAB at first start (idempotent), seeds a roster of store-staff
+# domain users (one of which, k.verma, still uses the onboarding default password), disables
+# account lockout, and plants the flag in a share only k.verma may read. The spray client
 # tooling (MIT Kerberos + smbclient) ships in the image so the lab's check can prove the path
 # from inside the DC with the same native tools a student would point at it from an attack box.
 FROM debian:12-slim
@@ -10,7 +10,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Preseed krb5 so its package install never prompts.
 RUN set -eux; \
-    echo "krb5-config krb5-config/default_realm string NORTH.SEVENKINGDOMS.LOCAL" | debconf-set-selections; \
+    echo "krb5-config krb5-config/default_realm string SUMMIT.LAB" | debconf-set-selections; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         samba samba-ad-provision samba-dsdb-modules samba-vfs-modules smbclient ldb-tools \

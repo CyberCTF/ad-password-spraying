@@ -3,16 +3,16 @@
     {
       "key": "main",
       "title": "Read the flag",
-      "prompt": "Spray a short list of seasonal candidate passwords across the domain user roster, find the single account that authenticates (the one reusing a weak seasonal password), then read flag.txt from the //dc/nightswatch share that only that account may open.",
+      "prompt": "Spray a short list of common candidate passwords across the domain user roster, find the single account that authenticates (the one reusing the weak onboarding default), then read flag.txt from the //dc/storeops share that only that account may open.",
       "check": {
         "evidence": "SECRET",
         "format": "FLAG{%s}"
       },
-      "dev": "FLAG{dev-pwspray-north-samwell.tarly}",
+      "dev": "FLAG{dev-pwspray-summit}",
       "hints": [
         "No credentials are handed out, but the user roster is known (and enumerable over null/low-priv LDAP on 389). Account lockout is disabled, so you can safely try one password against every user.",
-        "Spray a short list of seasonal candidates (season + year, capitalised, with digits: Spring2024, Summer2024, Autumn2024, Winter2023, ...) across the roster: nxc smb <dc> -u users.txt -p 'Autumn2024' --continue-on-success, or kerbrute passwordspray. Exactly one account comes back positive.",
-        "The hit is samwell.tarly / Autumn2024. Read the flag with it: smbclient //dc/nightswatch -U 'NORTH\\samwell.tarly%Autumn2024' -c 'get flag.txt'."
+        "Spray a short list of common candidates (onboarding default / season + year, capitalised, with digits: Spring2024, Summer2024, Autumn2024, Winter2023, ...) across the roster: nxc smb <dc> -u users.txt -p 'Summer2024' --continue-on-success, or kerbrute passwordspray. Exactly one account comes back positive.",
+        "The hit is k.verma / Summer2024. Read the flag with it: smbclient //dc/storeops -U 'SUMMIT\\k.verma%Summer2024' -c 'get flag.txt'."
       ],
       "steps": [
         {
@@ -38,22 +38,22 @@
         {
           "key": "account",
           "title": "Find the sprayable account",
-          "prompt": "Which account authenticates with a sprayed seasonal password? (username)",
+          "prompt": "Which account authenticates with a sprayed password? (username)",
           "check": {
             "answer": [
-              "samwell.tarly",
-              "north\\samwell.tarly",
-              "samwell"
+              "k.verma",
+              "summit\\k.verma",
+              "k.verma@summit.lab"
             ]
           }
         },
         {
           "key": "password",
           "title": "Recover the password",
-          "prompt": "Which seasonal password does that account reuse?",
+          "prompt": "Which default password does that account reuse?",
           "check": {
             "answer": [
-              "Autumn2024"
+              "Summer2024"
             ]
           }
         },
@@ -63,9 +63,9 @@
           "prompt": "Which SMB share holds the flag, readable only by the sprayed-in account?",
           "check": {
             "answer": [
-              "nightswatch",
-              "//dc/nightswatch",
-              "\\\\dc\\nightswatch"
+              "storeops",
+              "//dc/storeops",
+              "\\\\dc\\storeops"
             ]
           }
         }

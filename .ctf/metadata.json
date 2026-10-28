@@ -2,10 +2,10 @@
   "project_name": "cyberlabs-ad-password-spraying",
   "slug": "ad-password-spraying",
   "title": "Password Spraying (Active Directory)",
-  "description": "A single Samba Active Directory Domain Controller for NORTH.SEVENKINGDOMS.LOCAL, no Windows VMs. Account lockout is disabled and a themed roster of domain users is seeded; every password is policy-compliant, but exactly one account (samwell.tarly) reuses a weak seasonal word while the rest are strong and random. Spray a short list of seasonal candidate passwords across the roster, find the single account that authenticates, and use it to read the flag from a share only that account may open.",
+  "description": "A single Samba Active Directory Domain Controller for SUMMIT.LAB (Summit Retail Group, a retail chain), no Windows VMs. Account lockout is disabled and a roster of store-staff domain users is seeded; every password is policy-compliant, but exactly one account (k.verma, a store manager) still uses the weak onboarding default while the rest are strong and random. Spray a short list of common candidate passwords across the roster, find the single account that authenticates, and use it to read the flag from a share only that account may open.",
   "category": "network",
   "difficulty": 2,
   "evidence_kind": "SECRET",
   "capabilities": [],
-  "question": "Spray a list of seasonal candidate passwords across the domain user roster, recover the single account that reuses a weak password, and use it to read the flag from the //dc/nightswatch share."
+  "question": "Spray a list of common candidate passwords across the domain user roster, recover the single account that reuses the onboarding default password, and use it to read the flag from the //dc/storeops share."
 }

@@ -1,25 +1,26 @@
 # yaml-language-server: $schema=https://www.isoloom.com/schema/v1.json
-# Password spraying (GOAD-themed) as a single-container Isoloom lab: one Samba Active Directory
-# Domain Controller for NORTH.SEVENKINGDOMS.LOCAL, no Windows VMs. It seeds a themed roster of
-# domain users, disables account lockout, and gives exactly one of them (samwell.tarly) a weak,
-# policy-compliant seasonal password (Autumn2024); the rest are strong and random. The student
-# sprays a short list of seasonal candidate passwords across the roster from the attack box,
-# finds the single account that authenticates, and uses it to read the flag from a share only
-# that account may open. `isoloom generate`, then `isothrum up . --target docker`.
+# Password spraying as a single-container Isoloom lab: one Samba Active Directory Domain Controller
+# for SUMMIT.LAB (Summit Retail Group, a retail chain), no Windows VMs. It seeds a roster of
+# store-staff domain users, disables account lockout, and gives exactly one of them (k.verma, a
+# store manager) the onboarding default password (Summer2024) that new store staff are handed and
+# many never change; the rest have strong, random passwords. The student sprays a short list of
+# common candidate passwords across the roster from the attack box, finds the single account that
+# still uses the default, and uses it to read the flag from a share only that account may open.
+# `isoloom generate`, then `isothrum up . --target docker`.
 version: 1
 
-name: pwspray-north
+name: pwspray-summit
 
 # Given by the CyberCTF launcher: this player's flag. Without it the development flag.
 inputs: [CTF_FLAG_MAIN]
 
 networks:
-  lab: { cidr: 10.61.24.0/24, internet: false }
+  lab: { cidr: 10.50.10.0/24, internet: false }
 
 machines:
   dc:
     networks: { lab: 10 }
-    aliases: [dc.north.sevenkingdoms.local, north.sevenkingdoms.local]
+    aliases: [dc.summit.lab, summit.lab]
     resources: { cpus: 2, memory_mb: 2048 }
     ports:
       dns:         { port: 53,   protocol: tcp }
@@ -33,7 +34,7 @@ machines:
       ldaps:       { port: 636,  protocol: tls }
       gc:          { port: 3268, protocol: tcp }
     # The flag arrives as a file before the DC starts (Isoloom's sensitive-input mechanism);
-    # provisioning copies it into the share that only samwell.tarly may read.
+    # provisioning copies it into the share that only k.verma may read.
     files:
       - { path: /ctf/flag, input: CTF_FLAG_MAIN, mode: "0444" }
     app:
@@ -43,38 +44,41 @@ checks:
   - { name: the KDC answers, tcp: dc:88, wait: 120 }
   - { name: LDAP answers, tcp: dc:389, wait: 120 }
   - { name: SMB answers, tcp: dc:445, wait: 120 }
-  # End-to-end password spray, driven from inside the DC: every seasonal candidate is tried
-  # against the whole roster, exactly one account authenticates (samwell.tarly / Autumn2024),
-  # and that credential reads the flag while a strong-password user is denied the share.
-  # The heavy step is gated behind the ports.
-  - name: spraying seasonal passwords recovers one account and unlocks the flag
+  # End-to-end password spray, driven from inside the DC: every candidate is tried against the
+  # whole roster, exactly one account authenticates (k.verma / Summer2024), and that credential
+  # reads the flag while a strong-password user is denied the share. The heavy step is gated
+  # behind the ports.
+  - name: spraying the onboarding default recovers one account and unlocks the flag
     from: dc
     exec: /opt/pwspray/check.sh
     expect: PWSPRAY_OK
     wait: 180
 
 message: |
-  # Password Spraying — NORTH.SEVENKINGDOMS.LOCAL
+  # Password Spraying — Summit Retail Group (SUMMIT.LAB)
 
-  A lone Active Directory Domain Controller (Samba) runs the realm **NORTH.SEVENKINGDOMS.LOCAL**:
+  **Summit Retail Group** runs its store network on a single Active Directory Domain Controller
+  (Samba) for the realm **SUMMIT.LAB**:
 
-  - **DC:** `dc.north.sevenkingdoms.local` at `{{ machines.dc.addresses.lab }}` (KDC 88, LDAP 389, SMB 445).
+  - **DC:** `dc.summit.lab` at `{{ machines.dc.addresses.lab }}` (KDC 88, LDAP 389, SMB 445).
   - **No credentials are handed out.** Account lockout is disabled, so spraying is safe.
 
-  **Objective:** one of the domain users still protects their account with a weak, seasonal
-  password that happens to satisfy the password policy. Spray a short list of seasonal
-  candidates across the whole user roster, find the single account that authenticates, and use
-  it to read the flag from a share only that account may open.
+  **Objective:** onboarding hands every new store employee the same default password, and many
+  never change it. One of the store-staff accounts still protects their account with that weak
+  default — which happens to satisfy the password policy. Spray a short list of common candidate
+  passwords across the whole staff roster, find the single account that authenticates, and use it
+  to read the flag from a share only that account may open.
 
   **The roster** (also enumerable over null/low-priv LDAP on 389):
 
   ```
-  eddard.stark   catelyn.stark  robb.stark     sansa.stark
-  arya.stark     brandon.stark  jon.snow       samwell.tarly
-  jeor.mormont   benjen.stark   theon.greyjoy  maester.luwin
+  m.oulton    s.datta     r.novak     t.bako
+  e.schmidt   l.moreau    d.nguyen    k.verma
+  a.kowalski  p.ellison   j.ferreira  c.okafor
   ```
 
-  **Candidate passwords** — think *season + year*, policy-compliant (capitalised, with digits):
+  **Candidate passwords** — think *onboarding default / season + year*, policy-compliant
+  (capitalised, with digits):
 
   ```
   Spring2024  Summer2024  Autumn2024  Winter2023  Autumn2023  Password1  Welcome2024
@@ -83,11 +87,11 @@ message: |
   Point your attack box's resolver at the DC, then:
 
   1. **Spray one password across every user** (NetExec / CrackMapExec over SMB):
-     `nxc smb {{ machines.dc.addresses.lab }} -u users.txt -p 'Autumn2024' --continue-on-success`
+     `nxc smb {{ machines.dc.addresses.lab }} -u users.txt -p 'Summer2024' --continue-on-success`
      — or over Kerberos:
-     `kerbrute passwordspray -d NORTH.SEVENKINGDOMS.LOCAL --dc {{ machines.dc.addresses.lab }} users.txt 'Autumn2024'`.
+     `kerbrute passwordspray -d SUMMIT.LAB --dc {{ machines.dc.addresses.lab }} users.txt 'Summer2024'`.
      Exactly one account comes back `[+]`. (Repeat per candidate; lockout is off, so it is safe.)
   2. **Loot the flag** with the account you found:
-     `smbclient //dc/nightswatch -U 'NORTH\<user>%<password>' -c 'get flag.txt'`.
+     `smbclient //dc/storeops -U 'SUMMIT\<user>%<password>' -c 'get flag.txt'`.
 
   Submit the contents of `flag.txt`.

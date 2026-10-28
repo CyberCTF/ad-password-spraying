@@ -2,28 +2,28 @@
 # Proves the password-spraying path end to end, as a student would, driven from inside the DC:
 #   1. spray every candidate password in the wordlist across the whole user roster (Kerberos
 #      AS-REQ, exactly what kerbrute/nxc do) and collect every (user, password) that authenticates,
-#   2. confirm there is exactly one hit and it is the planted weak seasonal account
-#      (samwell.tarly / Autumn2024) -- which proves the strong-password users resist the spray,
+#   2. confirm there is exactly one hit and it is the planted weak onboarding-default account
+#      (k.verma / Summer2024) -- which proves the strong-password users resist the spray,
 #   3. use that one recovered credential to read the flag from the share only it may open, and
 #      confirm the flag matches the one the DC planted,
-#   4. negative control: a different, legitimately authenticating user (jon.snow, strong password)
-#      must NOT be able to read the share -- the flag is gated behind samwell.tarly, not just any login.
+#   4. negative control: a different, legitimately authenticating user (d.nguyen, strong password)
+#      must NOT be able to read the share -- the flag is gated behind k.verma, not just any login.
 # Exits 0 (and prints PWSPRAY_OK) only when every step holds, i.e. only when the domain is genuinely
-# sprayable: lockout disabled, one account reusing a weak seasonal password, flag gated behind it.
+# sprayable: lockout disabled, one account reusing the weak onboarding default, flag gated behind it.
 set -uo pipefail
 
-REALM="NORTH.SEVENKINGDOMS.LOCAL"
+REALM="SUMMIT.LAB"
 USERS="/opt/pwspray/users.txt"
 WORDLIST="/opt/pwspray/wordlist.txt"
-SHARE="nightswatch"
+SHARE="storeops"
 
-EXPECT_USER="samwell.tarly"
-EXPECT_PASS="Autumn2024"
-PLANTED="/srv/nightswatch/flag.txt"
+EXPECT_USER="k.verma"
+EXPECT_PASS="Summer2024"
+PLANTED="/srv/storeops/flag.txt"
 
 # A user with a strong, random password: must authenticate fine (valid domain user) yet be denied
 # the flag share. Used as the share-ACL negative control.
-STRONG_USER="jon.snow"
+STRONG_USER="d.nguyen"
 STRONG_PASS="Nk3gRq7xWm8Y=d"
 
 WORK="$(mktemp -d)"
@@ -54,14 +54,14 @@ echo "[2/4] confirmed single sprayable account: ${EXPECT_USER} / ${EXPECT_PASS}"
 
 echo "[3/4] reading the ${SHARE} share as ${EXPECT_USER} with the recovered password ..." >&2
 OUT="${WORK}/flag.out"
-smbclient "//dc/${SHARE}" -U "NORTH\\${EXPECT_USER}%${EXPECT_PASS}" -c "get flag.txt ${OUT}" >/dev/null 2>&1 \
+smbclient "//dc/${SHARE}" -U "SUMMIT\\${EXPECT_USER}%${EXPECT_PASS}" -c "get flag.txt ${OUT}" >/dev/null 2>&1 \
   || fail "could not read the ${SHARE} share as ${EXPECT_USER}"
 [ -s "${OUT}" ] || fail "${SHARE} flag.txt came back empty"
 diff -q "${OUT}" "${PLANTED}" >/dev/null 2>&1 \
   || fail "flag read via ${EXPECT_USER} does not match the planted flag"
 
 echo "[4/4] negative control: ${STRONG_USER} (valid login) must be denied the ${SHARE} share ..." >&2
-if smbclient "//dc/${SHARE}" -U "NORTH\\${STRONG_USER}%${STRONG_PASS}" \
+if smbclient "//dc/${SHARE}" -U "SUMMIT\\${STRONG_USER}%${STRONG_PASS}" \
      -c "get flag.txt ${WORK}/strong.out" >/dev/null 2>&1 && [ -s "${WORK}/strong.out" ]; then
   fail "${SHARE} is readable by ${STRONG_USER}; the flag is not gated behind ${EXPECT_USER}"
 fi

